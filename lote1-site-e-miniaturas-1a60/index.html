@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Biblioteca das 120 fichas de anatomia palpatória, com busca, filtros, favoritos e progresso de estudo.">
+<style>*{box-sizing:border-box}html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Mapas de Anatomia Palpatória</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: barra fixa de busca e progresso, faixa de regiões do corpo, grade de fichas altas; visualizador em diálogo com a ficha à esquerda e os dados à direita. */
+:root{
+  --bg:#f2f4f8; --surface:#ffffff; --sunken:#e6eaf1; --line:#d3d9e4;
+  --ink:#0d1a3a; --muted:#56617a; --accent:#e8590c; --accent-ink:#ffffff;
+  --navy:#0b2a6b; --ok:#1c7c54; --star:#c98a00; --stage:#0a1126;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a1022; --surface:#121a33; --sunken:#0d1429; --line:#263257;
+  --ink:#e9edf7; --muted:#9aa6c4; --accent:#ff7a2f; --accent-ink:#1a0d02;
+  --navy:#8fb0ff; --ok:#4fc393; --star:#f2bd3b; --stage:#050916; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a1022; --surface:#121a33; --sunken:#0d1429; --line:#263257;
+  --ink:#e9edf7; --muted:#9aa6c4; --accent:#ff7a2f; --accent-ink:#1a0d02;
+  --navy:#8fb0ff; --ok:#4fc393; --star:#f2bd3b; --stage:#050916; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:16px}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding-block:12px}
+.brand{flex:1 1 220px;min-width:0}
+.brand h1{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.05;margin:0;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.search{flex:2 1 260px;min-width:0;position:relative}
+.search input{width:100%;height:42px;padding:0 14px 0 40px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.search svg{position:absolute;left:13px;top:13px;width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2}
+.prog{flex:0 1 210px;min-width:150px}
+.prog b{font-family:var(--display);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.prog span{color:var(--muted);font-size:13px}
+.bar{height:6px;border-radius:3px;background:var(--sunken);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+
+.filters{display:flex;flex-direction:column;gap:12px;padding-block:16px 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;display:inline-flex;gap:8px;align-items:baseline;font-weight:500}
+.chip small{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] small{color:inherit;opacity:.7}
+.row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:7px 12px;font-size:14px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.row select{height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 8px}
+.row label{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+.tog input{width:16px;height:16px;accent-color:var(--accent)}
+.count{margin-left:auto;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:16px;padding-block:8px 48px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.tile .pic{border:0;padding:0;background:var(--sunken);display:block;position:relative;aspect-ratio:9/19;width:100%;overflow:hidden}
+.tile .pic img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.tile.done .pic img{opacity:.55}
+.tile .rep{position:absolute;right:6px;bottom:6px;background:var(--stage);color:#fff;font-size:12px;font-weight:600;padding:2px 7px;border-radius:999px}
+.tile .meta{padding:8px 10px 4px;display:flex;gap:8px;align-items:flex-start;min-width:0}
+.num{font-family:var(--display);font-weight:700;font-size:15px;background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:0 5px;font-variant-numeric:tabular-nums;flex:none}
+.tile .nm{font-weight:600;font-size:14px;line-height:1.2;min-width:0;overflow-wrap:anywhere}
+.tile .rg{padding:0 10px;color:var(--muted);font-size:12px}
+.tile .acts{display:flex;gap:4px;padding:4px 6px 6px;margin-top:auto}
+.ib{border:0;background:none;border-radius:6px;padding:6px;display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+.ib:hover{background:var(--sunken)}
+.ib svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ib.fav[aria-pressed="true"]{color:var(--star)} .ib.fav[aria-pressed="true"] svg{fill:currentColor}
+.ib.chk[aria-pressed="true"]{color:var(--ok);font-weight:600}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:56px 0}
+.empty button{margin-top:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 14px}
+
+dialog{border:0;padding:0;background:var(--surface);color:var(--ink);border-radius:12px;width:min(980px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:hidden}
+dialog::backdrop{background:rgba(5,9,22,.72)}
+.view{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:min(860px,calc(100dvh - 24px))}
+.stage{background:var(--stage);overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:12px;min-height:0}
+.stage img{width:100%;max-width:440px;height:auto;display:block;border-radius:4px;cursor:zoom-in}
+.stage.zoom{justify-content:flex-start}
+.stage.zoom img{width:auto;max-width:none;cursor:zoom-out}
+.stage .hdtag{position:absolute;left:12px;bottom:12px;background:rgba(5,9,22,.8);color:#fff;font-size:12px;padding:3px 8px;border-radius:999px;pointer-events:none}
+.stage{position:relative}
+.side{padding:20px;overflow:auto;display:flex;flex-direction:column;gap:16px;min-width:0}
+.side .hd{display:flex;gap:10px;align-items:flex-start}
+.side .num{font-size:22px;padding:1px 8px}
+.side h2{font-family:var(--display);font-size:clamp(20px,2vw,24px);line-height:1.05;margin:0;text-transform:uppercase;font-weight:700;text-wrap:balance;overflow-wrap:break-word;hyphens:auto;min-width:0}
+.x{margin-left:auto;flex:none}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px}
+dt{color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.08em;padding-top:3px}
+dd{margin:0}
+.txt{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
+.txt h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
+.txt dl{display:flex;flex-direction:column;gap:2px}
+.txt dt+dd+dt{margin-top:10px}
+.txt dt{color:var(--accent);font-family:var(--display);font-size:14px;letter-spacing:.04em;font-weight:700;padding:0}
+.txt dd{font-size:15px;line-height:1.4;margin-top:1px}
+.txt sup{color:var(--accent);font-weight:700;margin-left:2px}
+.txt .rec{font-size:12px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);border-left:2px solid var(--line);padding-left:10px}
+.big{display:flex;gap:8px;flex-wrap:wrap}
+.big .ib{border:1px solid var(--line);padding:8px 12px;color:var(--ink)}
+.sib h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:600}
+.sib div{display:flex;flex-wrap:wrap;gap:6px}
+.sib button{border:1px solid var(--line);background:var(--sunken);border-radius:6px;padding:4px 8px;font-size:13px;text-align:left}
+.nav{display:flex;gap:8px;margin-top:auto;align-items:center}
+.nav button{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px}
+.nav span{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:720px){
+  dialog{overflow:auto}
+  .view{grid-template-columns:1fr;grid-template-rows:none;height:auto}
+  header.top{position:static}
+  .stage{max-height:62dvh}
+  .brand h1{font-size:22px}
+  .count{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><h1>Mapas de Anatomia Palpatória</h1><p id="sub">120 fichas</p></div>
+  <div class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="q" type="search" placeholder="Buscar por músculo, região ou número" aria-label="Buscar fichas" autocomplete="off">
+  </div>
+  <div class="prog"><b id="pn">0</b> <span>de 120 estudadas</span><div class="bar"><i id="pb"></i></div></div>
+</div></header>
+
+<main class="wrap">
+  <section class="filters" aria-label="Filtros">
+    <div class="chips" id="regs"></div>
+    <div class="row">
+      <div class="seg" id="mode" role="group" aria-label="Mostrar">
+        <button data-m="all" aria-pressed="true">Todas</button>
+        <button data-m="todo" aria-pressed="false">A estudar</button>
+        <button data-m="done" aria-pressed="false">Estudadas</button>
+        <button data-m="fav" aria-pressed="false">Favoritas</button>
+      </div>
+      <label>Plano
+        <select id="plano">
+          <option value="">Todos</option><option value="s">Superficial</option><option value="i">Intermediário</option>
+          <option value="p">Profundo</option><option value="o">Posterior</option><option value="-">Sem plano indicado</option>
+        </select></label>
+      <label>Ordem
+        <select id="ord"><option value="n">Número da ficha</option><option value="a">Nome (A–Z)</option></select></label>
+      <label class="tog"><input type="checkbox" id="grp"> Juntar fichas repetidas</label>
+      <span class="count" id="cnt"></span>
+    </div>
+  </section>
+  <section class="grid" id="grid" aria-live="polite"></section>
+</main>
+
+<dialog id="dlg" aria-labelledby="vn" lang="pt-BR">
+  <div class="view">
+    <div class="stage" id="stage"><img id="vi" alt=""><span class="hdtag" id="hdt" hidden></span></div>
+    <div class="side">
+      <div class="hd"><span class="num" id="vnum"></span><h2 id="vn"></h2>
+        <button class="ib x" id="vx" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <dl><dt>Região</dt><dd id="vr"></dd><dt>Plano</dt><dd id="vp"></dd><dt>Página</dt><dd id="vpg"></dd></dl>
+      <p class="note" id="vnote" hidden></p>
+      <section class="txt" id="vt" aria-label="Texto da ficha"></section>
+      <div class="big">
+        <button class="ib chk" id="vdone" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg><span></span></button>
+        <button class="ib fav" id="vfav" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.9l6-.9z"/></svg><span></span></button>
+      </div>
+      <div class="sib" id="vsib" hidden><h3>Outras fichas deste músculo</h3><div></div></div>
+      <p class="note">O texto da ficha está transcrito acima. Clique em qualquer ponto da imagem para ampliar. Use as setas do teclado para trocar de ficha.</p>
+      <div class="nav"><button id="vprev">← Anterior</button><span id="vpos"></span><button id="vnext">Próxima →</button></div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const REG={P:"Pescoço",D:"Dorso",O:"Ombro",B:"Braço",T:"Tronco e tórax",C:"Cotovelo",A:"Antebraço",M:"Mão"};
+const PL={s:"Superficial",i:"Intermediário",p:"Profundo",o:"Posterior","":"Não indicado na ficha"};
+const RAW=`Esternocleidomastóideo|P|
+Trapézio (porção superior)|PD|
+Trapézio (porção média)|D|
+Trapézio (porção inferior)|D|
+Deltoide (porção anterior)|O|
+Deltoide (porção média)|O|
+Deltoide (porção posterior)|O|
+Bíceps braquial|B|
+Tríceps braquial|B|
+Braquial|B|
+Braquiorradial|A|
+Flexor radial do carpo|A|
+Palmar longo|A|
+Flexor ulnar do carpo|A|
+Extensor radial curto do carpo|A|
+Extensor radial longo do carpo|A|
+Extensor dos dedos|A|
+Extensor do dedo mínimo|A|
+Supinador|A|
+Pronador redondo|A|
+Serrátil anterior|TO|
+Rombóide maior|D|
+Rombóide menor|D|
+Levantador da escápula|PO|
+Infraespinhal|O|
+Redondo menor|O|
+Redondo maior|O|
+Subescapular|O|
+Peitoral menor|T|
+Oblíquo interno|T|
+Extensor dos dedos|A|o
+Extensor do dedo mínimo|A|o
+Extensor do indicador|A|o
+Abdutor longo do polegar|A|o
+Extensor curto do polegar|A|o
+Extensor longo do polegar|A|o
+Supinador|A|o
+Ancôneo|C|o
+Músculos extensores da mão (visão geral)|A|o
+Plano profundo do antebraço (visão geral)|A|
+Flexor superficial dos dedos|A|i
+Flexor profundo dos dedos|A|p
+Flexor longo do polegar|A|p
+Pronador quadrado|A|p
+Abdutor longo do polegar|A|o
+Extensor longo do polegar|A|o
+Extensor curto do polegar|A|o
+Extensor do indicador|A|o
+Extensores dos dedos (2º ao 5º)|A|o
+Extensor do dedo mínimo|A|o
+Abdutor curto do polegar|A|o
+Flexor curto do polegar|A|o
+Oponente do polegar|A|o|O título impresso nesta ficha está ilegível; o nome foi tirado da legenda da ilustração.
+Adutor do polegar|A|o
+Flexor do indicador|A|p
+Lumbricais da mão|A|p
+Interósseos palmares|A|p
+Interósseos dorsais|A|p
+Flexor curto do dedo mínimo|A|o
+Oponente do dedo mínimo|A|o
+Abdutor longo do polegar|A|o
+Extensor longo do indicador|A|o
+Extensor do dedo mínimo|A|o
+Ancôneo|A|o
+Supinador|A|p
+Pronador redondo|A|s
+Flexor radial do carpo|A|s
+Flexor ulnar do carpo|A|s
+Palmar longo|A|s
+Flexor superficial dos dedos|A|s
+Extensor curto do polegar|A|o
+Extensor longo do polegar|A|o
+Extensor do indicador|A|o
+Extensor do dedo mínimo|A|o
+Abdutor do dedo mínimo|A|p
+Flexor profundo do indicador|A|p
+Flexor profundo do dedo médio|A|p
+Flexor profundo do anular|A|p
+Flexor profundo do dedo mínimo|A|p
+Pronador quadrado|A|p
+Flexor longo do polegar|A|p
+Pronador teres|A|s
+Palmar curto|A|s
+Flexor longo dos dedos|A|p
+Flexor profundo dos dedos|A|p
+Extensor do indicador|A|p
+Abdutor longo do polegar|A|p
+Extensor longo do polegar|A|p
+Extensor curto do polegar|A|p
+Extensor do dedo mínimo|A|p
+Flexor curto do polegar|A|p
+Oponente do polegar|A|p
+Adutor do polegar|A|p
+Interósseos dorsais da mão|M|p
+Interósseos palmares da mão|M|p
+Lumbricais da mão|M|p
+Flexor curto do dedo mínimo|M|p
+Oponente do dedo mínimo|M|p
+Abdutor do dedo mínimo|M|s
+Flexor profundo dos dedos|A|p
+Extensor dos dedos|A|p
+Extensor do dedo mínimo|A|p
+Extensor radial longo do carpo|A|s
+Extensor radial curto do carpo|A|s
+Supinador|A|p
+Pronador redondo|A|s
+Flexor superficial dos dedos|A|i
+Flexor profundo dos dedos|A|p
+Flexor longo do polegar|A|p
+Pronador quadrado|A|p
+Flexor superficial do dedo mínimo|A|p
+Abdutor do dedo mínimo|M|s
+Flexor curto do dedo mínimo|M|s
+Oponente do dedo mínimo|M|p
+Lumbricais da mão|M|p
+Interósseos palmares|M|p
+Interósseos dorsais|M|p
+Adutor do polegar|M|p
+Flexor curto do polegar|M|s
+Oponente do polegar|M|s`;
+const TXT={"1":{"o":"Manúbrio do esterno (cabeça esternal); terço medial da clavícula (cabeça clavicular)","i":"Processo mastoide do osso temporal; linha nucal superior","f":"Flexão, rotação contralateral e inclinação lateral da cabeça","r":"Manúbrio do esterno, clavícula, processo mastoide","p":"Com o paciente em rotação contralateral, palpar o ventre muscular no terço médio","c":"Avaliação de tensão cervical, dores cervicogênicas e disfunções posturais","pos":"Sentado, cabeça em rotação contralateral","mov":"Rotação contralateral contra resistência","rec":["o"]},"2":{"o":"Linha nucal superior; processos espinhosos de C7 a T12","i":"Clavícula (terço lateral)","f":"Elevação da escápula","r":"Linha nucal superior, acrômio, processos espinhosos","p":"Palpar o ventre muscular entre a linha nucal e o acrômio","pos":"Sentado, ombros relaxados","mov":"Elevação dos ombros contra resistência"},"3":{"o":"Processos espinhosos de T1 a T6","i":"Acrômio e espinha da escápula","f":"Retração da escápula","r":"Processos espinhosos, acrômio, espinha da escápula","p":"Palpar o ventre muscular entre o processo espinhoso e o acrômio","c":"Estabilização escapular e disfunções posturais","pos":"Sentado, braços ao lado do corpo","mov":"Retração da escápula contra resistência"},"4":{"o":"Processos espinhosos de T7 a T12","i":"Espinha da escápula","f":"Depressão da escápula","r":"Processos espinhosos, espinha da escápula","p":"Palpar o ventre inferior do músculo, próximo ao ângulo inferior da escápula","c":"Controle escapular e estabilização do ombro","pos":"Sentado, braços relaxados","mov":"Depressão da escápula contra resistência"},"5":{"o":"Terço lateral da clavícula","i":"Tuberosidade deltóidea do úmero","f":"Flexão e rotação medial do ombro","r":"Clavícula, acrômio, tuberosidade deltóidea","p":"Palpar o ventre muscular na porção anterior do ombro","c":"Avaliação de força, reabilitação de lesões e disfunções do ombro","pos":"Sentado, braço ao lado do corpo","mov":"Flexão do ombro contra resistência"},"6":{"o":"Acrômio","i":"Tuberosidade deltóidea do úmero","f":"Abdução do ombro","r":"Acrômio, tuberosidade deltóidea","p":"Palpar o ventre muscular na face lateral do ombro","c":"Avaliação de força e reabilitação de lesões do ombro","pos":"Sentado, braço ao lado do corpo","mov":"Abdução do ombro contra resistência"},"7":{"o":"Espinha da escápula","i":"Tuberosidade deltóidea do úmero","f":"Extensão e rotação lateral do ombro","r":"Espinha da escápula, tuberosidade deltóidea","p":"Palpar o ventre muscular na porção posterior do ombro","c":"Reabilitação de lesões, fortalecimento e estabilidade do ombro","pos":"Sentado, braço ao lado do corpo","mov":"Extensão do ombro contra resistência"},"8":{"o":"Cabeça longa: tubérculo supraglenoidal; cabeça curta: processo coracoide","i":"Tuberosidade do rádio e aponeurose bicipital","f":"Flexão do cotovelo e supinação do antebraço","r":"Tubérculo supraglenoidal, processo coracoide, tuberosidade do rádio","p":"Palpar o ventre muscular na face anterior do braço","c":"Avaliação de força, reabilitação e disfunções do cotovelo","pos":"Sentado, braço relaxado","mov":"Flexão do cotovelo contra resistência","rec":["c"]},"9":{"o":"Cabeça longa: tubérculo infraglenoidal; cabeça lateral: face posterior do úmero; cabeça medial: face posterior do úmero","i":"Olécrano da ulna","f":"Extensão do cotovelo","r":"Tubérculo infraglenoidal, úmero, olécrano","p":"Palpar o ventre muscular na porção posterior do braço","c":"Fortalecimento, reabilitação e avaliação de lesões do cotovelo","pos":"Sentado, braço relaxado","mov":"Extensão do cotovelo contra resistência"},"10":{"o":"Face anterior do úmero (metade distal)","i":"Tuberosidade da ulna","f":"Flexão do cotovelo","r":"Úmero, tuberosidade da ulna","p":"Palpar o ventre muscular profundo, medial ao bíceps","c":"Avaliação de força e reabilitação do cotovelo","pos":"Sentado, braço relaxado","mov":"Flexão do cotovelo contra resistência"},"11":{"o":"Crista supracondilar lateral do úmero","i":"Processo estiloide do rádio","f":"Flexão do cotovelo (posição neutra), estabilização do antebraço","r":"Crista supracondilar lateral, processo estiloide do rádio","p":"Palpar na face lateral do antebraço, entre o bíceps e o extensor radial","c":"Avaliação de dor lateral do cotovelo, epicondilalgia, reabilitação da flexão","pos":"Sentado, braço relaxado","mov":"Flexão do cotovelo contra resistência"},"12":{"o":"Epicôndilo medial do úmero","i":"Base do 2º e 3º metacarpos","f":"Flexão e abdução (desvio radial) do punho","r":"Epicôndilo medial, tendão visível","p":"Palpar o tendão na face anterior do punho, lateral ao palmar longo","c":"Avaliação de tendinites, dor na face radial do punho, sobrecarga por repetição","pos":"Sentado, antebraço em supinação","mov":"Flexão e desvio radial contra resistência"},"13":{"o":"Epicôndilo medial do úmero","i":"Aponeurose palmar","f":"Flexão do punho, tensão da aponeurose palmar","r":"Epicôndilo medial","p":"Palpar o tendão na face anterior do punho, entre o flexor radial e o flexor ulnar","c":"Avaliação de disfunções do punho, tensão da fáscia palmar","pos":"Sentado, antebraço em supinação"},"14":{"o":"Epicôndilo medial do úmero e olécrano","i":"Pisiforme, hamato e base do 5º metacarpo","f":"Flexão e adução (desvio ulnar) do punho","r":"Epicôndilo medial, olécrano, pisiforme","p":"Palpar na face medial do antebraço, em direção ao pisiforme","c":"Avaliação de tendinites, dor ulnar do punho, estabilidade da articulação","pos":"Sentado, antebraço em supinação","mov":"Flexão e desvio ulnar contra resistência"},"15":{"o":"Epicôndilo lateral do úmero","i":"Base do 3º metacarpo","f":"Extensão e abdução (desvio radial) do punho","r":"Epicôndilo lateral, tubérculo de Lister","p":"Palpar na face posterior do antebraço, lateral ao extensor radial longo","c":"Avaliação de epicondilalgia lateral, dor no punho, lesões por esforço repetitivo","pos":"Sentado, antebraço apoiado","mov":"Extensão do punho contra resistência"},"16":{"o":"Crista supracondilar lateral do úmero","i":"Base do 2º metacarpo","f":"Extensão e abdução (desvio radial) do punho","r":"Epicôndilo lateral, tubérculo de Lister","p":"Palpar na face posterolateral do antebraço, proximal ao extensor curto","c":"Avaliação de dor lateral do cotovelo, epicondilalgia, estabilidade do punho","pos":"Sentado, antebraço apoiado","mov":"Extensão do punho contra resistência"},"17":{"o":"Epicôndilo lateral do úmero","i":"Expansões extensoras do 2º ao 5º dedos","f":"Extensão dos dedos e do punho","r":"Epicôndilo lateral, tendões extensores","p":"Palpar na face posterior do antebraço, na porção central","c":"Avaliação de disfunções de extensão, reabilitação de mão e punho","pos":"Sentado, antebraço apoiado","mov":"Extensão dos dedos contra resistência"},"18":{"o":"Epicôndilo lateral do úmero","i":"Expansão extensora do 5º dedo","f":"Extensão do 5º dedo e auxílio na extensão do punho","r":"Epicôndilo lateral","p":"Palpar na face posterior ulnar do antebraço","c":"Avaliação de disfunções da extensão do 5º dedo, lesões por esforço repetitivo","pos":"Sentado, antebraço apoiado","mov":"Extensão do 5º dedo contra resistência"},"19":{"o":"Epicôndilo lateral do úmero, ligamento colateral radial, crista do supinador da ulna","i":"Face lateral do rádio","f":"Supinação do antebraço","r":"Epicôndilo lateral, crista do supinador","p":"Palpar na face lateral proximal do antebraço, abaixo do epicôndilo","c":"Avaliação de dor medial do cotovelo, lesões do nervo radial, limitação da supinação","pos":"Sentado, cotovelo a 90º","mov":"Supinação contra resistência"},"20":{"o":"Epicôndilo medial do úmero e processo coronoide da ulna","i":"Face lateral do rádio (terço médio)","f":"Pronação do antebraço e auxílio na flexão do cotovelo","r":"Epicôndilo medial, processo coronoide, face lateral do rádio","p":"Palpar na face anterior medial do antebraço","c":"Avaliação de dor medial do cotovelo, disfunções da pronação","pos":"Sentado, cotovelo a 90º","mov":"Pronação contra resistência"},"21":{"o":"Faces laterais da 1ª à 8ª/9ª costelas","i":"Face anterior (costal) da escápula (borda medial)","f":"Protração da escápula, rotação superior e fixação da escápula na parede torácica","r":"Costelas, borda medial da escápula","p":"Palpar na parede torácica lateral, sobre as costelas, imediatamente profundo à axila","c":"Avaliação da protração escapular, estabilidade do ombro e em lesões do nervo torácico longo","pos":"Sentado, tronco ereto, braços à frente","mov":"Protração da escápula (empurrar para frente)"},"22":{"o":"Processos espinhosos de T2 a T5","i":"Borda medial da escápula (porção inferior)","f":"Retração, rotação inferior e estabilização da escápula","r":"Processos espinhosos de T2 a T5, borda medial da escápula","p":"Palpar entre a coluna e a borda medial da escápula, ao nível do ângulo inferior","c":"Avaliação da retração escapular, dor interescapular e disfunções posturais","pos":"Sentado, tronco ereto, braços relaxados","mov":"Retração da escápula (aproximar as escápulas)"},"23":{"o":"Processos espinhosos de C7 a T1","i":"Borda medial da escápula (porção superior, próximo à espinha)","f":"Retração, rotação inferior e estabilização da escápula","r":"Processos espinhosos de C7 a T1, borda medial da escápula","p":"Palpar na região superior da borda medial da escápula, acima do romboide maior","c":"Avaliação do controle escapular e em disfunções da cintura escapular","pos":"Sentado, tronco ereto, braços relaxados","mov":"Retração da escápula (aproximar as escápulas)"},"24":{"o":"Processos transversos de C1 a C4","i":"Borda medial da escápula (porção superior)","f":"Elevação da escápula, rotação inferior e inclinação ipsilateral do pescoço","r":"Processos transversos cervicais, borda medial da escápula","p":"Palpar no triângulo posterior do pescoço, entre o esternocleidomastóideo e a borda medial da escápula","c":"Avaliação de dor cervical, tensão muscular e síndrome da escápula elevada","pos":"Sentado, pescoço em posição neutra","mov":"Elevação da escápula (encolher os ombros)"},"25":{"o":"Fossa infraespinhal da escápula","i":"Face média do tubérculo maior do úmero","f":"Rotação lateral do ombro e estabilização da cabeça do úmero na cavidade glenoidal","r":"Fossa infraespinhal, tubérculo maior do úmero","p":"Palpar abaixo da espinha da escápula, na fossa infraespinhal","c":"Avaliação da rotação lateral, lesões do manguito rotador e dor no ombro","pos":"Sentado, braço relaxado ao lado do corpo","mov":"Rotação lateral do ombro contra resistência"},"26":{"o":"Borda lateral da escápula (porção superior)","i":"Face inferior do tubérculo maior do úmero","f":"Rotação lateral do ombro e estabilização da articulação glenoumeral","r":"Borda lateral da escápula, tubérculo maior do úmero","p":"Palpar na face posterior do ombro, logo abaixo do infraespinhal","c":"Avaliação da rotação lateral, lesões do manguito rotador e dor no ombro","pos":"Sentado, braço relaxado ao lado do corpo","mov":"Rotação lateral do ombro contra resistência"},"27":{"o":"Ângulo inferior da escápula","i":"Crista do tubérculo menor do úmero (lábio medial do sulco intertubercular)","f":"Adução, rotação medial e extensão do ombro","r":"Ângulo inferior da escápula, tubérculo menor do úmero","p":"Palpar na prega axilar posterior, entre o latíssimo do dorso e o tríceps braquial","c":"Avaliação da adução e rotação medial do ombro, força em esportes de arremesso e escalada","pos":"Sentado, braço relaxado ao lado do corpo","mov":"Adução e rotação medial do ombro contra resistência"},"28":{"o":"Fossa subescapular da escápula","i":"Tubérculo menor do úmero","f":"Rotação medial do ombro e estabilização da cabeça do úmero","r":"Fossa subescapular, tubérculo menor do úmero","p":"Palpar na face anterior do ombro, profundo ao peitoral maior, próximo à axila","c":"Avaliação da rotação medial, lesões do manguito rotador e instabilidade do ombro","pos":"Sentado, braço em leve rotação lateral","mov":"Rotação medial do ombro contra resistência"},"29":{"o":"3ª, 4ª e 5ª costelas (faces anteriores, próximas às suas cartilagens)","i":"Processo coracoide da escápula","f":"Protração e depressão da escápula, estabilização da escápula na parede torácica","r":"3ª a 5ª costelas, processo coracoide","p":"Palpar na parede torácica anterior, profundo ao peitoral maior, em direção ao processo coracoide","c":"Avaliação da protração escapular, síndrome do desfiladeiro torácico e dor no ombro","pos":"Decúbito dorsal","mov":"Protração da escápula (empurrar para frente)"},"30":{"o":"Fáscia toracolombar, 2/3 anteriores da crista ilíaca e ligamento inguinal","i":"Bordas inferiores das costelas 10ª a 12ª, linha alba e pécten do púbis","f":"Rotação ipsilateral, flexão lateral e compressão dos órgãos abdominais","r":"Costelas 10ª a 12ª, crista ilíaca, ligamento inguinal","p":"Palpar na parede abdominal lateral, profundo ao oblíquo externo","c":"Avaliação da rotação e flexão lateral do tronco, estabilidade lombopélvica e em dores lombares","pos":"Decúbito dorsal, joelhos fletidos","mov":"Rotação e flexão lateral do tronco contra resistência"},"31":{"o":"Epicôndilo lateral do úmero","i":"Bases das falanges médias e distais dos dedos 2º ao 5º","f":"Extensão dos dedos 2º ao 5º e auxílio na extensão do punho","r":"Epicôndilo lateral, rádio, ulna","p":"Palpar no dorso do antebraço, tendões no dorso da mão","c":"Avaliação da força extensora dos dedos, reabilitação de lesões","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão dos dedos contra resistência"},"32":{"o":"Epicôndilo lateral do úmero","i":"Base da falange proximal do 5º dedo","f":"Extensão do 5º dedo","r":"Epicôndilo lateral, ulna","p":"Palpar no dorso do antebraço, tendão para o 5º dedo","c":"Avaliação da extensão isolada do 5º dedo, importante em lesões do nervo radial","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do 5º dedo contra resistência"},"33":{"o":"Epicôndilo lateral do úmero","i":"Base da falange proximal do 2º dedo","f":"Extensão do 2º dedo (indicador)","r":"Rádio, ulna, epicôndilo lateral","p":"Palpar no dorso do antebraço, tendão para o 2º dedo","c":"Útil na avaliação de movimentos isolados, importante para funções finas da mão","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do 2º dedo contra resistência"},"34":{"o":"Face posterior da ulna, rádio e membrana interóssea","i":"Base do 1º metacarpo","f":"Abdução e extensão do polegar","r":"Rádio, ulna, membrana interóssea","p":"Palpar na face lateral do antebraço, próximo ao punho","c":"Avaliação da abdução do polegar, importante para a preensão e pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Abdução do polegar contra resistência"},"35":{"o":"Face posterior do rádio e membrana interóssea","i":"Base do 1º metacarpo","f":"Extensão do polegar (articulação metacarpofalângica)","r":"Rádio, membrana interóssea","p":"Palpar na face lateral do antebraço, distal ao abdutor longo do polegar","c":"Importante na extensão do polegar, utilizado na preensão e movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do polegar contra resistência"},"36":{"o":"Face posterior da ulna, rádio e membrana interóssea","i":"Base da falange distal do polegar","f":"Extensão do polegar (articulação interfalângica)","r":"Rádio, ulna, membrana interóssea","p":"Palpar na face lateral do antebraço, tendão para o polegar","c":"Avaliação da extensão da falange distal do polegar","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão da falange distal do polegar"},"37":{"o":"Epicôndilo lateral do úmero, ligamento colateral radial e crista do supinador da ulna","i":"Terço proximal do rádio","f":"Supinação do antebraço","r":"Epicôndilo lateral, ulna, rádio","p":"Palpar na face lateral proximal do antebraço","c":"Avaliação da supinação, importante para movimentos de rotação do antebraço","pos":"Antebraço apoiado, cotovelo a 90º","mov":"Supinação contra resistência"},"38":{"o":"Epicôndilo lateral do úmero","i":"Face lateral do olécrano e parte proximal da ulna","f":"Auxílio na extensão do cotovelo e estabilização","r":"Epicôndilo lateral, olécrano, ulna","p":"Palpar na face posterolateral do cotovelo","c":"Importante na estabilidade do cotovelo, frequentemente envolvido em lesões","pos":"Cotovelo flexionado a 90º","mov":"Extensão do cotovelo contra resistência"},"39":{"fg":"Extensão dos dedos, punho e polegar","inerv":"Nervo radial (ramo profundo)","irrig":"Artérias interóssea posterior e recorrente radial","r":"Epicôndilo lateral, rádio, ulna","c":"Avaliação da função extensora da mão, reabilitação de lesões do nervo radial, importante para preensão"},"40":{"fg":"Movimentos de extensão, abdução e supinação","inerv":"Nervo radial (ramo profundo)","irrig":"Artéria interóssea posterior","est":"Supinador, abdutor longo do polegar, extensor curto do polegar, extensor longo do polegar, membrana interóssea","imp":"Essencial para a estabilização do punho, movimentos de pinça e preensão, frequentemente acometido em lesões do nervo radial"},"41":{"o":"Epicôndilo medial do úmero","i":"Bases das falanges médias dos dedos 2º ao 5º","f":"Flexão das articulações interfalângicas proximais dos dedos 2º ao 5º","r":"Epicôndilo medial, ulna, rádio","p":"Palpar no terço médio do antebraço, porção anterior","c":"Avaliação da força de preensão e flexão dos dedos","pos":"Antebraço supinado, mão relaxada","mov":"Flexão dos dedos contra resistência"},"42":{"o":"2/3 proximais da face anterior e medial da ulna e membrana interóssea","i":"Bases das falanges distais dos dedos 2º ao 5º","f":"Flexão das articulações interfalângicas distais dos dedos 2º ao 5º","r":"Ulna, membrana interóssea","p":"Palpar profundamente no antebraço, medial ao flexor superficial","c":"Avaliação da força de flexão dos dedos e da força de preensão","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão da ponta dos dedos contra resistência"},"43":{"o":"Face anterior do rádio e membrana interóssea","i":"Base da falange distal do polegar","f":"Flexão da articulação interfalângica do polegar","r":"Rádio, membrana interóssea","p":"Palpar na porção anterolateral do antebraço, em direção ao polegar","c":"Avaliação da flexão do polegar, importante para a preensão e pinça","pos":"Antebraço supinado, mão relaxada","mov":"Flexão do polegar contra resistência"},"44":{"o":"1/4 distal da face anterior da ulna","i":"1/4 distal da face anterior do rádio","f":"Pronação do antebraço","r":"Ulna e rádio (terço distal)","p":"Palpar na face anterior distal do antebraço","c":"Avaliação da pronação, importante para movimentos de giro e estabilidade do punho","pos":"Antebraço apoiado, mão relaxada","mov":"Pronação do antebraço contra resistência"},"45":{"o":"Faces posteriores do rádio e da ulna e membrana interóssea","i":"Base do 1º metacarpo","f":"Abdução e extensão do polegar","r":"Rádio, ulna e membrana interóssea","p":"Palpar na face posterolateral do antebraço, próximo ao polegar","c":"Avaliação da abdução do polegar, importante para a preensão em pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Abdução do polegar contra resistência"},"46":{"o":"Face posterior da ulna e membrana interóssea","i":"Base da falange distal do polegar","f":"Extensão do polegar","r":"Ulna, rádio e membrana interóssea","p":"Palpar na face posterior do antebraço, porção lateral","c":"Avaliação da extensão do polegar, importante para movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do polegar contra resistência"},"47":{"o":"Face posterior do rádio e cápsula articular do punho","i":"Base do 1º metacarpo","f":"Extensão e abdução do polegar","r":"Rádio, cápsula do punho","p":"Palpar na face posterior do antebraço, próximo ao extensor longo","c":"Avaliação da extensão do polegar, utilizado em atividades de precisão","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do polegar contra resistência"},"48":{"o":"Face posterior da ulna e membrana interóssea","i":"Expansão extensora do 2º dedo","f":"Extensão isolada do 2º dedo (indicador)","r":"Ulna, membrana interóssea","p":"Palpar na face posterior do antebraço, tendão do 2º dedo","c":"Útil na avaliação de movimentos isolados dos dedos e em testes de destreza","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do 2º dedo contra resistência"},"49":{"o":"Epicôndilo lateral do úmero","i":"Expansões extensoras dos dedos 2º ao 5º","f":"Extensão dos dedos 2º ao 5º e auxílio na extensão do punho","r":"Epicôndilo lateral, ulna, rádio","p":"Palpar na face posterior do antebraço, tendões centrais","c":"Avaliação da extensão dos dedos, importante para a liberação da preensão","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão dos dedos contra resistência"},"50":{"o":"Epicôndilo lateral do úmero","i":"Expansão extensora do 5º dedo","f":"Extensão isolada do 5º dedo","r":"Epicôndilo lateral, ulna","p":"Palpar na face posterior do antebraço, tendão do 5º dedo","c":"Avaliação da extensão isolada do dedo mínimo, importante para a destreza manual","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do 5º dedo contra resistência"},"51":{"o":"Face anterior do osso trapézio e retináculo dos flexores","i":"Base do 1º metacarpo (lado lateral)","f":"Abdução do polegar","r":"Trapézio, 1º metacarpo","p":"Região tenar, lateral ao tendão do flexor curto","c":"Importante para a preensão e movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Abdução do polegar contra resistência"},"52":{"o":"Retináculo dos flexores e osso trapézio (cabeça superficial)","i":"Base do 1º metacarpo (lado medial)","f":"Flexão do polegar na articulação carpometacarpal","r":"Trapézio, 1º metacarpo","p":"Região tenar, profunda ao abdutor curto","c":"Importante para a força de preensão e pinça fina","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do polegar contra resistência"},"53":{"o":"Osso trapézio e retináculo dos flexores","i":"Face lateral do 1º metacarpo","f":"Oposição do polegar","r":"Trapézio, 1º metacarpo","p":"Região tenar, profundo ao abdutor curto","c":"Essencial para a preensão de precisão e movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Oposição do polegar contra resistência"},"54":{"o":"Cabeça oblíqua: base do 2º e 3º metacarpos; cabeça transversa: face anterior do 3º metacarpo","i":"Base do 1º metacarpo (lado medial)","f":"Adução do polegar","r":"2º e 3º metacarpos, 1º metacarpo","p":"Região central da palma da mão, em profundidade","c":"Importante para a força de pinça e estabilidade do polegar","pos":"Antebraço apoiado, mão relaxada","mov":"Adução do polegar contra resistência"},"55":{"o":"Face anterior do rádio e membrana interóssea","i":"Base do 2º metacarpo (lado palmar)","f":"Flexão do indicador","r":"Rádio, membrana interóssea, 2º metacarpo","p":"Tendão palpável na base do 2º metacarpo","c":"Importante para a flexão isolada do indicador e precisão na pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do indicador contra resistência"},"56":{"o":"Tendões do flexor profundo dos dedos (2º, 3º, 4º e 5º)","i":"Expansões extensoras dos dedos (2º ao 5º)","f":"Flexão das articulações metacarpofalângicas e extensão das interfalângicas","r":"Tendões do flexor profundo, falanges","p":"Região palmar, entre os tendões","c":"Importantes para movimentos finos e para a preensão de precisão","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão das MCF com extensão das IF"},"57":{"o":"Faces palmares dos metacarpos (1º, 3º e 5º)","i":"Expansões extensoras dos dedos (2º, 4º e 5º)","f":"Adução dos dedos (em relação ao 3º dedo)","r":"Metacarpos e expansões extensoras","p":"Espaços intermetacarpais na face palmar","c":"Importantes para a estabilização da mão e movimentos de preensão","pos":"Antebraço apoiado, mão relaxada","mov":"Adução dos dedos contra resistência"},"58":{"o":"Faces adjacentes dos metacarpos (1º ao 4º)","i":"Expansões extensoras dos dedos (2º ao 5º)","f":"Abdução dos dedos (em relação ao 3º dedo)","r":"Metacarpos e expansões extensoras","p":"Espaços intermetacarpais na face dorsal","c":"Importantes para a estabilização da mão e movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Abdução dos dedos contra resistência"},"59":{"o":"Hâmulo do hamato e retináculo dos flexores","i":"Base do 5º metacarpo (lado medial)","f":"Flexão do dedo mínimo","r":"Hamato, 5º metacarpo","p":"Região hipotenar (base do 5º metacarpo)","c":"Importante para a força de preensão e movimentos de pinça do dedo mínimo","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do dedo mínimo contra resistência"},"60":{"o":"Hâmulo do hamato e retináculo dos flexores","i":"Base do 5º metacarpo (lado medial)","f":"Oposição do dedo mínimo","r":"Hamato, 5º metacarpo","p":"Região hipotenar, profundo ao abdutor do dedo mínimo","c":"Auxilia na preensão e estabilização da mão","pos":"Antebraço apoiado, mão relaxada","mov":"Oposição do dedo mínimo contra resistência"},"61":{"o":"Face posterior do rádio e membrana interóssea","i":"Base do 1º metacarpo (lado lateral)","f":"Abdução e extensão do polegar","r":"Rádio, membrana interóssea","p":"Terço distal do antebraço, lado radial","c":"Importante para a estabilidade e movimentos de pinça do polegar","pos":"Antebraço apoiado, mão relaxada","mov":"Abdução do polegar contra resistência"},"62":{"o":"Face posterior da ulna e membrana interóssea","i":"Expansão extensora do 2º dedo","f":"Extensão isolada do indicador","r":"Ulna, membrana interóssea","p":"Terço posterior do antebraço, ao lado do extensor dos dedos","c":"Importante para movimentos de extensão do indicador e precisão motora","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do indicador contra resistência"},"63":{"o":"Epicôndilo lateral do úmero","i":"Expansão extensora do 5º dedo","f":"Extensão isolada do dedo mínimo","r":"Epicôndilo lateral, ulna","p":"Terço distal do antebraço, tendão do 5º dedo","c":"Importante para movimentos de extensão e estabilização da mão","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do dedo mínimo contra resistência"},"64":{"o":"Epicôndilo lateral do úmero","i":"Face lateral da ulna (região proximal)","f":"Auxilia na extensão do cotovelo e estabilização da articulação","r":"Epicôndilo lateral, ulna","p":"Região posterolateral do cotovelo","c":"Importante na estabilização do cotovelo e em movimentos de extensão","pos":"Cotovelo fletido, mão relaxada","mov":"Extensão do cotovelo contra resistência"},"65":{"o":"Epicôndilo lateral, ligamento colateral radial e crista do supinador da ulna","i":"Face lateral do rádio (terço proximal)","f":"Supinação do antebraço","r":"Epicôndilo lateral, ulna, rádio","p":"Face lateral do antebraço, logo abaixo do cotovelo","c":"Essencial para movimentos de supinação e estabilização radioulnar","pos":"Antebraço apoiado, mão relaxada","mov":"Supinação contra resistência"},"66":{"o":"Epicôndilo medial do úmero e processo coronoide da ulna","i":"Face lateral do rádio (terço médio)","f":"Pronação do antebraço","r":"Epicôndilo medial, ulna, rádio","p":"Terço proximal do antebraço, lado medial","c":"Importante para movimentos de pronação e estabilização do punho","pos":"Antebraço apoiado, mão relaxada","mov":"Pronação contra resistência"},"67":{"o":"Epicôndilo medial do úmero","i":"Base do 2º e 3º metacarpos","f":"Flexão e desvio radial do punho","r":"Epicôndilo medial, rádio","p":"Terço médio do antebraço, tendão radial","c":"Importante para a flexão do punho e estabilização em movimentos de preensão","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do punho contra resistência"},"68":{"o":"Epicôndilo medial do úmero e olécrano da ulna","i":"Pisiforme, hamato e base do 5º metacarpo","f":"Flexão e desvio ulnar do punho","r":"Epicôndilo medial, ulna","p":"Borda ulnar do antebraço, tendão proeminente","c":"Importante para a estabilidade do punho e movimentos de preensão","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do punho contra resistência"},"69":{"o":"Epicôndilo medial do úmero","i":"Aponeurose palmar","f":"Tensiona a aponeurose palmar (auxilia na flexão do punho)","r":"Epicôndilo medial do úmero","p":"Tendão central no punho (quando presente)","c":"Variação anatômica comum (pode estar ausente); auxilia na estabilização da aponeurose palmar","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do punho contra resistência"},"70":{"o":"Epicôndilo medial do úmero e processo coronoide da ulna","i":"Bases das falanges médias dos dedos (2º ao 5º)","f":"Flexão das articulações interfalângicas proximais (IFP) dos dedos","r":"Epicôndilo medial, ulna","p":"Terço médio do antebraço, ventre muscular","c":"Importante para a força de preensão e movimentos de flexão dos dedos","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão dos dedos contra resistência"},"71":{"o":"Face posterior do rádio e membrana interóssea","i":"Base do 1º metacarpo (lado dorsal)","f":"Extensão do polegar (abdução leve)","r":"Rádio, 1º metacarpo","p":"Terço distal do antebraço, lateral","c":"Importante para a extensão do polegar e estabilização do punho","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do polegar contra resistência"},"72":{"o":"Face posterior da ulna e membrana interóssea","i":"Base do 1º metacarpo (lado dorsal)","f":"Extensão do polegar","r":"Ulna, 1º metacarpo","p":"Terço médio do antebraço, lateral","c":"Essencial para a extensão do polegar em movimentos de preensão","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do polegar contra resistência"},"73":{"o":"Face posterior da ulna e membrana interóssea","i":"Expansão extensora do 2º dedo","f":"Extensão isolada do indicador","r":"Ulna, 2º metacarpo","p":"Terço distal do antebraço, dorsal","c":"Importante para movimentos finos de extensão do indicador","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do indicador contra resistência"},"74":{"o":"Face posterior da ulna e membrana interóssea","i":"Expansão extensora do 5º dedo","f":"Extensão isolada do dedo mínimo","r":"Ulna, 5º metacarpo","p":"Terço distal do antebraço, ulnar","c":"Importante para movimentos de extensão independente do dedo mínimo","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do dedo mínimo contra resistência"},"75":{"o":"Face posterior da ulna e membrana interóssea","i":"Base do 5º metacarpo (lado dorsal)","f":"Abdução do dedo mínimo","r":"Ulna, 5º metacarpo","p":"Terço distal do antebraço, ulnar profundo","c":"Auxilia na abdução do dedo mínimo e estabilização da mão","pos":"Antebraço apoiado, mão relaxada","mov":"Abdução do dedo mínimo contra resistência"},"76":{"o":"Face anterior da ulna e membrana interóssea","i":"Falange distal do 2º dedo","f":"Flexão da articulação interfalângica distal do indicador","r":"Ulna, falange distal","p":"Terço distal do antebraço, face anterior","c":"Importante para movimentos de pinça e de precisão","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do indicador contra resistência"},"77":{"o":"Face anterior da ulna e membrana interóssea","i":"Falange distal do 3º dedo","f":"Flexão da articulação interfalângica distal do dedo médio","r":"Ulna, falange distal","p":"Terço distal do antebraço, face anterior","c":"Importante para a força de preensão e movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do dedo médio contra resistência"},"78":{"o":"Face anterior da ulna e membrana interóssea","i":"Falange distal do 4º dedo","f":"Flexão da articulação interfalângica distal do dedo anular","r":"Ulna, falange distal","p":"Terço distal do antebraço, face anterior","c":"Contribui para a força de preensão e movimentos de pinça fina","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do anular contra resistência"},"79":{"o":"Face anterior da ulna e membrana interóssea","i":"Falange distal do 5º dedo","f":"Flexão da articulação interfalângica distal do dedo mínimo","r":"Ulna, falange distal","p":"Terço distal do antebraço, ulnar","c":"Importante para a preensão e movimentos finos do dedo mínimo","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do dedo mínimo contra resistência"},"80":{"o":"Face anterior da ulna (terço distal)","i":"Face anterior do rádio (terço distal)","f":"Pronação do antebraço","r":"Ulna distal, rádio distal","p":"Região distal do antebraço, anterior","c":"Estabilização da articulação radioulnar distal e pronação do antebraço","pos":"Antebraço apoiado, mão relaxada","mov":"Pronação contra resistência"},"81":{"o":"Face anterior do rádio e membrana interóssea","i":"Base da falange distal do polegar (face palmar)","f":"Flexão do polegar (principalmente a IFP)","r":"Rádio, membrana interóssea","p":"Terço distal do antebraço, tendão visível na face palmar","c":"Importante para a preensão e movimentos de pinça com o polegar","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do polegar contra resistência"},"82":{"o":"Epicôndilo medial do úmero e processo coronoide da ulna","i":"Face lateral do rádio (terço médio)","f":"Pronação do antebraço e leve flexão do cotovelo","r":"Epicôndilo medial, processo coronoide da ulna","p":"Terço proximal do antebraço, borda medial, logo abaixo do cotovelo","c":"Importante na pronação e estabilização dinâmica do cotovelo","pos":"Antebraço apoiado, mão relaxada","mov":"Pronação contra resistência"},"83":{"o":"Epicôndilo medial do úmero","i":"Aponeurose palmar","f":"Tensiona a aponeurose palmar","r":"Epicôndilo medial","p":"Terço distal do antebraço, tendão fino em direção à aponeurose palmar","c":"Auxilia na preensão e na estabilidade da aponeurose palmar","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do punho contra resistência"},"84":{"o":"Face anterior da ulna e membrana interóssea","i":"Bases das falanges distais dos dedos (2º ao 5º)","f":"Flexão das falanges distais (2º ao 5º)","r":"Ulna, membrana interóssea","p":"Terço distal do antebraço, profundo na face palmar","c":"Importante para a preensão e movimentos de flexão fina dos dedos","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão dos dedos contra resistência"},"85":{"o":"Face anterior da ulna e membrana interóssea","i":"Bases das falanges distais dos dedos (2º ao 5º)","f":"Flexão das falanges distais","r":"Ulna, membrana interóssea","p":"Terço distal do antebraço, profundo ao flexor longo dos dedos","c":"Essencial para a preensão de força e movimentos de precisão","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão das falanges distais contra resistência"},"86":{"o":"Face posterior da ulna e membrana interóssea","i":"Expansão extensora do 2º dedo","f":"Extensão isolada do indicador","r":"Ulna, membrana interóssea","p":"Terço distal do antebraço, tendão ao lado do extensor comum","c":"Importante para movimentos finos e de extensão independente do indicador","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do indicador contra resistência"},"87":{"o":"Face posterior do rádio e membrana interóssea","i":"Base do 1º metacarpo (lado lateral)","f":"Abdução e extensão do polegar","r":"Rádio, membrana interóssea","p":"Terço distal do antebraço, tendão visível na tabaqueira anatômica","c":"Importante na estabilização do polegar e movimentos de preensão","pos":"Antebraço apoiado, mão relaxada","mov":"Abdução do polegar contra resistência"},"88":{"o":"Face posterior da ulna e membrana interóssea","i":"Base da falange distal do polegar","f":"Extensão do polegar (IFP e IFD)","r":"Ulna, membrana interóssea","p":"Tendão na face dorsal do punho, tabaqueira anatômica","c":"Essencial para a extensão do polegar e movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do polegar contra resistência"},"89":{"o":"Face posterior do rádio e membrana interóssea","i":"Base do 1º metacarpo (lado dorsal)","f":"Extensão do polegar (principalmente MCF)","r":"Rádio, membrana interóssea","p":"Tendão na face dorsal do punho, próximo ao abdutor longo","c":"Importante na estabilização da articulação carpometacarpal do polegar","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do polegar contra resistência"},"90":{"o":"Face posterior da ulna e membrana interóssea","i":"Expansão extensora do 5º dedo","f":"Extensão isolada do dedo mínimo","r":"Ulna, membrana interóssea","p":"Terço distal do antebraço, tendão lateral ao extensor dos dedos","c":"Importante para movimentos de extensão independente do dedo mínimo","pos":"Antebraço apoiado, mão relaxada","mov":"Extensão do dedo mínimo contra resistência"},"91":{"o":"Face anterior do rádio e membrana interóssea","i":"Base do 1º metacarpo (lado palmar)","f":"Flexão do polegar (articulação carpometacarpal)","r":"Rádio, membrana interóssea","p":"Terço distal do antebraço, profundo ao flexor longo do polegar","c":"Importante para a força de preensão e movimentos de pinça","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão do polegar contra resistência"},"92":{"o":"Face anterior do rádio e membrana interóssea","i":"Face lateral do 1º metacarpo","f":"Oposição do polegar","r":"Rádio, membrana interóssea","p":"Região tenar, profundo ao abdutor curto do polegar","c":"Essencial para movimentos de oposição e pinça de precisão","pos":"Antebraço apoiado, mão relaxada","mov":"Oposição do polegar contra resistência"},"93":{"o":"Cabeça oblíqua: base do 2º e 3º metacarpos; cabeça transversa: face anterior do 3º metacarpo","i":"Base do 1º metacarpo (lado medial)","f":"Adução do polegar","r":"2º e 3º metacarpos","p":"Região palmar, profundo aos músculos tenares","c":"Importante para a força de pinça e estabilização do polegar","pos":"Antebraço apoiado, mão relaxada","mov":"Adução do polegar contra resistência"},"94":{"o":"Faces adjacentes dos metacarpos (1º ao 4º)","i":"Expansões extensoras dos dedos (2º ao 5º)","f":"Abdução dos dedos (em relação ao 3º dedo)","r":"Metacarpos e expansões extensoras","p":"Espaços intermetacarpais (na face dorsal)","c":"Importantes para a estabilização dos dedos e movimentos de abdução","pos":"Palma da mão apoiada","mov":"Adução dos dedos contra resistência","rec":["c"]},"95":{"o":"Faces palmares dos metacarpos (1º, 3º e 5º)","i":"Expansões extensoras dos dedos (2º, 4º e 5º)","f":"Adução dos dedos (em relação ao 3º dedo)","r":"Metacarpos e expansões extensoras","p":"Espaços intermetacarpais (na face palmar)","c":"Importantes para a adução dos dedos e movimentos de preensão","pos":"Palma da mão, mão relaxada","mov":"Adução dos dedos contra resistência"},"96":{"o":"Tendões do flexor profundo dos dedos (2º, 3º, 4º e 5º)","i":"Expansões extensoras dos dedos (2º ao 5º)","f":"Flexão das articulações metacarpofalângicas e extensão das interfalângicas","r":"Tendões do flexor profundo, falanges","p":"Região palmar, entre os tendões","c":"Importantes para movimentos finos e precisão digital","pos":"Palma da mão, mão relaxada","mov":"Flexão das MCF com extensão das IF"},"97":{"o":"Hâmulo do hamato e retináculo dos flexores","i":"Base do 5º metacarpo","f":"Flexão do dedo mínimo","r":"Hamato, 5º metacarpo","p":"Região hipotenar, próximo ao 5º metacarpo","c":"Importante para a força de preensão e movimentos do dedo mínimo","pos":"Palma da mão apoiada","mov":"Flexão do dedo mínimo contra resistência"},"98":{"o":"Hâmulo do hamato e retináculo dos flexores","i":"Base do 5º metacarpo","f":"Oposição do dedo mínimo","r":"Hamato, 5º metacarpo","p":"Região hipotenar, profundo ao abdutor do dedo mínimo","c":"Auxilia na preensão e estabilização da mão","pos":"Palma da mão apoiada","mov":"Oposição do dedo mínimo contra resistência"},"99":{"o":"Pisiforme e tendão do flexor ulnar do carpo","i":"Base do 5º metacarpo (lado ulnar)","f":"Abdução do dedo mínimo","r":"Pisiforme, 5º metacarpo","p":"Região hipotenar, superficial","c":"Importante para a abdução do dedo mínimo e estabilização da mão","pos":"Palma da mão apoiada","mov":"Abdução do dedo mínimo contra resistência"},"100":{"o":"Face anterior da ulna e membrana interóssea","i":"Bases das falanges distais dos dedos (2º ao 5º)","f":"Flexão das interfalângicas distais","r":"Ulna, membrana interóssea","p":"Terço distal do antebraço, profundo aos flexores superficiais","c":"Importante para a força de preensão e movimentos de flexão fina dos dedos","pos":"Antebraço apoiado, mão relaxada","mov":"Flexão das falanges distais contra resistência"},"101":{"o":"Epicôndilo lateral do úmero","i":"Expansões extensoras dos dedos (2º ao 5º)","f":"Extensão dos dedos (2º ao 5º) e extensão do punho","r":"Úmero (epicôndilo lateral)","p":"Terço proximal do antebraço, lateral ao extensor radial curto","c":"Importante para movimentos de preensão e liberação dos dedos"},"102":{"o":"Epicôndilo lateral do úmero","i":"Expansão extensora do 5º dedo","f":"Extensão isolada do dedo mínimo","r":"Úmero (epicôndilo lateral)","p":"Terço médio do antebraço, lateral ao extensor dos dedos","c":"Importante para movimentos finos de extensão do 5º dedo","rec":["p"]},"103":{"o":"Epicôndilo lateral do úmero","i":"Base do 2º metacarpo (face dorsal)","f":"Extensão e abdução radial do punho","r":"Úmero (epicôndilo lateral) e rádio","p":"Terço proximal do antebraço, lateral (músculo superficial)","c":"Importante para estabilidade do punho e movimentos de desvio radial"},"104":{"o":"Epicôndilo lateral do úmero","i":"Base do 3º metacarpo (face dorsal)","f":"Extensão e abdução radial do punho","r":"Úmero (epicôndilo lateral)","p":"Logo distal ao extensor radial longo, lado lateral do antebraço","c":"Importante para movimentos de desvio radial e estabilidade do punho"},"105":{"o":"Epicôndilo lateral do úmero, ligamento colateral radial e crista do supinador da ulna","i":"Face lateral do rádio (terço proximal)","f":"Supinação do antebraço","r":"Úmero, ulna e rádio","p":"Região anterolateral do antebraço, próximo à cabeça do rádio","c":"Essencial para movimentos de supinação e estabilidade do antebraço"},"106":{"o":"Epicôndilo medial do úmero e processo coronoide da ulna","i":"Face lateral do rádio (terço médio)","f":"Pronação do antebraço","r":"Úmero, ulna e rádio","p":"Terço proximal do antebraço, face anterior","c":"Importante para movimentos de pronação e estabilização do cotovelo"},"107":{"o":"Epicôndilo medial do úmero e processo coronoide da ulna","i":"Bases das falanges médias (2º ao 5º)","f":"Flexão das articulações interfalângicas proximais (2º ao 5º)","r":"Úmero e ulna","p":"Terço médio do antebraço, face anterior","c":"Importante para força de preensão e movimentos de flexão dos dedos"},"108":{"o":"Face anterior da ulna e membrana interóssea","i":"Bases das falanges distais (2º ao 5º)","f":"Flexão das articulações interfalângicas distais (2º ao 5º)","r":"Ulna e membrana interóssea","p":"Terço distal do antebraço, face anterior","c":"Essencial para força de preensão fina e movimentos de pinça"},"109":{"o":"Face anterior do rádio e membrana interóssea","i":"Base da falange distal do polegar","f":"Flexão do polegar (IFD)","r":"Rádio e membrana interóssea","p":"Terço distal do antebraço, face anterior","c":"Importante para movimentos de pinça e flexão fina do polegar"},"110":{"o":"Face anterior da ulna (terço distal)","i":"Face anterior do rádio (terço distal)","f":"Pronação do antebraço","r":"Ulna e rádio","p":"Região distal do antebraço, face anterior","c":"Importante para movimentos de pronação e estabilização da articulação radioulnar distal"},"111":{"o":"Face anterior do rádio e membrana interóssea","i":"Base da falange média do 5º dedo","f":"Flexão do 5º dedo (articulação PIP) e auxílio na flexão da MCP","r":"Rádio, ulna e membrana interóssea","p":"Terço médio do antebraço, medial ao flexor superficial dos dedos","c":"Importante para movimentos de preensão e estabilização do 5º dedo"},"112":{"o":"Osso pisiforme e retináculo dos flexores","i":"Base da falange proximal do 5º dedo (lado ulnar)","f":"Abdução do 5º dedo","r":"Pisiforme, 5º metacarpo","p":"Região ulnar da palma da mão","c":"Importante para a abdução do 5º dedo e movimentos de preensão"},"113":{"o":"Hâmulo do hamato e retináculo dos flexores","i":"Base da falange proximal do 5º dedo (lado ulnar)","f":"Flexão do 5º dedo (MCP)","r":"Hâmulo do hamato, 5º metacarpo","p":"Região ulnar da palma, profundo ao abdutor do dedo mínimo","c":"Auxilia na preensão e na flexão da MCP do 5º dedo"},"114":{"o":"Hâmulo do hamato e retináculo dos flexores","i":"Borda medial do 5º metacarpo","f":"Oposição do 5º dedo","r":"Hâmulo do hamato, 5º metacarpo","p":"Região ulnar da palma, profundo aos músculos hipotenares","c":"Importante para movimentos de oposição e pinça de precisão"},"115":{"o":"Tendões do flexor profundo dos dedos (1º ao 4º dedo)","i":"Expansões extensoras (2º ao 5º dedo)","f":"Flexão das MCP e extensão das IFP e IFD","r":"Tendões do flexor profundo","p":"Região palmar, entre os tendões","c":"Importantes para movimentos finos, escrita e preensão de precisão"},"116":{"o":"Faces palmares dos metacarpos (1º, 3º e 5º)","i":"Expansões extensoras (2º, 4º e 5º dedos)","f":"Adução dos dedos (em relação ao 3º dedo)","r":"Metacarpos e expansões extensoras","p":"Espaços intermetacárpicos (face palmar)","c":"Importantes para a adução dos dedos e movimentos de preensão"},"117":{"o":"Faces adjacentes dos metacarpos (1º ao 4º)","i":"Expansões extensoras (2º ao 5º dedos)","f":"Abdução dos dedos (em relação ao 3º dedo)","r":"Metacarpos e expansões extensoras","p":"Espaços intermetacárpicos (face dorsal)","c":"Importantes para a abdução dos dedos e estabilização da mão"},"118":{"o":"Bases do 2º e 3º metacarpos e hamato","i":"Base da falange proximal do polegar (lado ulnar)","f":"Adução do polegar","r":"2º e 3º metacarpos, hamato","p":"Região palmar, profunda ao 1º metacarpo","c":"Importante para a força de pinça e estabilização do polegar"},"119":{"o":"Retináculo dos flexores e trapézio (cabo superficial); trapezoide/capitato (cabo profundo)","i":"Base da falange proximal do polegar","f":"Flexão do polegar (MCP)","r":"Trapézio, trapezoide, capitato","p":"Região palmar, na base do polegar","c":"Importante para a flexão do polegar e movimentos de pinça"},"120":{"o":"Retináculo dos flexores e osso trapézio","i":"Borda lateral do 1º metacarpo","f":"Oposição do polegar","r":"Trapézio e 1º metacarpo","p":"Região tenar, lateral ao flexor curto","c":"Essencial para a oposição e pinça de precisão"}};
+const LBL=[["fg","Função geral"],["o","Origem"],["i","Inserção"],["f","Função"],["inerv","Inervação"],["irrig","Irrigação"],["est","Estruturas principais"],["r","Referências ósseas"],["p","Ponto de palpação"],["c","Aplicação clínica"],["imp","Importância clínica"],["pos","Posicionamento do paciente"],["mov","Movimento para confirmação"]];
+const ALIAS={"Interósseos dorsais da mão":"Interósseos dorsais","Interósseos palmares da mão":"Interósseos palmares","Pronador teres":"Pronador redondo","Extensores dos dedos (2º ao 5º)":"Extensor dos dedos"};
+const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const pad=n=>String(n).padStart(3,"0");
+const CARDS=RAW.split("\n").map((l,i)=>{const[name,r,p,note]=l.split("|");const n=i+1;
+  return{n,name,regs:[...r],p:p||"",note:note||"",key:norm(ALIAS[name]||name),src:"cards/"+pad(n)+".webp",hd:"hd/"+pad(n)+".webp",
+    hay:norm(name+" "+Object.values(TXT[n]||{}).filter(v=>typeof v==="string").join(" ")+" "+[...r].map(c=>REG[c]).join(" ")+" "+(PL[p]||"")+" "+n+" "+pad(n))}});
+const BY={};CARDS.forEach(c=>(BY[c.key]=BY[c.key]||[]).push(c));
+const $=id=>document.getElementById(id);
+const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+const STAR='<svg viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.9l6-.9z"/></svg>';
+const CHK='<svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+
+/* estado */
+const S={q:"",reg:"",mode:"all",plano:"",ord:"n",grp:false,fav:new Set(),done:new Set()};
+let list=[],cur=-1,ref=null,saving=false,dirty=false,timer=0;
+const LS="mapas-palpatoria-v1";
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem(LS)||"{}");(d.fav||[]).forEach(n=>S.fav.add(n));(d.done||[]).forEach(n=>S.done.add(n))}catch(e){}}
+function persist(){const d={fav:[...S.fav].sort((a,b)=>a-b),done:[...S.done].sort((a,b)=>a-b)};
+  try{localStorage.setItem(LS,JSON.stringify(d))}catch(e){}
+  if(ref){dirty=true;clearTimeout(timer);timer=setTimeout(flush,900)}}
+async function flush(){if(!ref||saving||!dirty)return;saving=true;dirty=false;
+  try{await ref.set({fav:[...S.fav],done:[...S.done]})}catch(e){}
+  saving=false;if(dirty)flush()}
+async function connect(){try{
+  if(!window.claude||!window.claude.use)return;
+  const[db,user]=await Promise.all([claude.use("db"),claude.use("user")]);if(!db||!user)return;
+  const id=await user.id();if(!id)return;
+  const r=db.doc("data/users/"+id+"/progresso");const snap=await r.get();
+  const d=snap.exists?(snap.data()||{}):{};const f0=S.fav.size,d0=S.done.size;
+  (d.fav||[]).forEach(n=>S.fav.add(n));(d.done||[]).forEach(n=>S.done.add(n));
+  ref=r;if(S.fav.size!==(d.fav||[]).length||S.done.size!==(d.done||[]).length)persist();
+  if(S.fav.size!==f0||S.done.size!==d0)render();
+}catch(e){}}
+
+/* filtros */
+function match(c){
+  if(S.reg&&!c.regs.includes(S.reg))return false;
+  if(S.plano&&(S.plano==="-"?c.p!=="":c.p!==S.plano))return false;
+  if(S.mode==="fav"&&!S.fav.has(c.n))return false;
+  if(S.mode==="done"&&!S.done.has(c.n))return false;
+  if(S.mode==="todo"&&S.done.has(c.n))return false;
+  if(S.q){const t=norm(S.q).split(/\s+/).filter(Boolean);if(!t.every(w=>c.hay.includes(w)))return false}
+  return true}
+function chips(){const box=$("regs");box.textContent="";
+  const add=(code,label,n)=>{const b=el("button","chip");b.type="button";b.setAttribute("aria-pressed",String(S.reg===code));
+    b.append(label," ",el("small",null,n));b.onclick=()=>{S.reg=code;render()};box.append(b)};
+  add("","Todas as regiões",CARDS.length);
+  Object.keys(REG).forEach(k=>add(k,REG[k],CARDS.filter(c=>c.regs.includes(k)).length))}
+function render(){
+  chips();
+  let hits=CARDS.filter(match);
+  const sorter=S.ord==="a"?(a,b)=>a.name.localeCompare(b.name,"pt")||a.n-b.n:(a,b)=>a.n-b.n;
+  hits.sort(sorter);list=hits;
+  const g=$("grid");g.textContent="";
+  let shown=hits,groups=null;
+  if(S.grp){groups=new Map();hits.forEach(c=>{if(!groups.has(c.key))groups.set(c.key,[]);groups.get(c.key).push(c)});shown=[...groups.values()].map(a=>a[0])}
+  if(!shown.length){const e=el("div","empty");e.append(el("div",null,"Nenhuma ficha corresponde a esses filtros."));
+    const b=el("button",null,"Limpar filtros");b.onclick=reset;e.append(b);g.append(e)}
+  const frag=document.createDocumentFragment();
+  shown.forEach(c=>{const t=el("article","tile"+(S.done.has(c.n)?" done":""));
+    const pic=el("button","pic");pic.type="button";pic.setAttribute("aria-label","Abrir ficha "+c.n+", "+c.name);
+    const im=el("img");im.loading="lazy";im.decoding="async";im.src=c.src;im.alt="";im.width=260;im.height=600;pic.append(im);
+    const reps=groups?groups.get(c.key).length:0;if(reps>1)pic.append(el("span","rep",reps+" fichas"));
+    pic.onclick=()=>open(c.n);
+    const m=el("div","meta");m.append(el("span","num",pad(c.n).slice(c.n>99?0:1)),el("span","nm",c.name));
+    const rg=el("div","rg",c.regs.map(r=>REG[r]).join(" · ")+(c.p?" · "+PL[c.p].toLowerCase():""));
+    const a=el("div","acts");
+    const k=el("button","ib chk");k.type="button";k.innerHTML=CHK;k.append(el("span",null,S.done.has(c.n)?"Estudada":"Marcar"));
+    k.setAttribute("aria-pressed",String(S.done.has(c.n)));k.setAttribute("aria-label",(S.done.has(c.n)?"Desmarcar":"Marcar")+" ficha "+c.n+" como estudada");
+    k.onclick=()=>toggle("done",c.n);
+    const f=el("button","ib fav");f.type="button";f.innerHTML=STAR;f.style.marginLeft="auto";
+    f.setAttribute("aria-pressed",String(S.fav.has(c.n)));f.setAttribute("aria-label",(S.fav.has(c.n)?"Tirar dos":"Pôr nos")+" favoritos: ficha "+c.n);
+    f.onclick=()=>toggle("fav",c.n);
+    a.append(k,f);t.append(pic,m,rg,a);frag.append(t)});
+  g.append(frag);
+  $("cnt").textContent=S.grp?shown.length+" músculos · "+hits.length+" fichas":hits.length+(hits.length===1?" ficha":" fichas");
+  $("pn").textContent=S.done.size;$("pb").style.width=(S.done.size/CARDS.length*100)+"%";
+  $("sub").textContent="120 fichas · "+Object.keys(BY).length+" músculos e visões gerais · "+S.fav.size+" favoritas";
+  [...$("mode").children].forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===S.mode)));
+}
+function reset(){S.q="";S.reg="";S.mode="all";S.plano="";$("q").value="";$("plano").value="";render()}
+function toggle(kind,n){const set=S[kind];set.has(n)?set.delete(n):set.add(n);persist();const y=window.scrollY;render();window.scrollTo(0,y);if($("dlg").open)paint()}
+
+/* visualizador */
+function open(n){let i=list.findIndex(c=>c.n===n);if(i<0){list=CARDS.slice();i=n-1}cur=i;paint();if(!$("dlg").open)$("dlg").showModal()}
+function paintText(c){const box=$("vt"),t=TXT[c.n]||{};box.textContent="";
+  box.append(el("h3",null,"Texto da ficha"));const dl=el("dl");let any=false;
+  LBL.forEach(([k,lab])=>{if(!t[k])return;const dt=el("dt",null,lab);const dd=el("dd",null,t[k]);
+    if((t.rec||[]).includes(k)){dd.append(el("sup",null,"*"));any=true}dl.append(dt,dd)});
+  box.append(dl);if(any)box.append(el("p","rec","* Trecho ilegível ou com erro de impressão na ficha original; texto completado com a descrição anatômica correspondente."))}
+function paint(){const c=list[cur];if(!c)return;paintText(c);
+  $("stage").classList.remove("zoom");$("stage").scrollTo(0,0);
+  $("vi").src=c.src;$("vi").alt="Ficha "+c.n+": "+c.name;$("hdt").textContent="Carregando alta resolução…";$("hdt").hidden=false;
+  const want=c.n,hi=new Image();hi.onload=()=>{if(list[cur]&&list[cur].n===want){$("vi").src=c.hd;$("hdt").hidden=true}};hi.src=c.hd;
+  $("vnum").textContent=pad(c.n).slice(c.n>99?0:1);$("vn").textContent=c.name;
+  $("vr").textContent=c.regs.map(r=>REG[r]).join(" e ");$("vp").textContent=PL[c.p];
+  $("vpg").textContent=(Math.ceil(c.n/10))+" de 12 do PDF original";
+  $("vnote").hidden=!c.note;$("vnote").textContent=c.note;
+  const d=S.done.has(c.n),f=S.fav.has(c.n);
+  $("vdone").setAttribute("aria-pressed",String(d));$("vdone").lastElementChild.textContent=d?"Estudada":"Marcar como estudada";
+  $("vfav").setAttribute("aria-pressed",String(f));$("vfav").lastElementChild.textContent=f?"Nos favoritos":"Favoritar";
+  const sib=BY[c.key].filter(x=>x.n!==c.n),box=$("vsib").lastElementChild;box.textContent="";$("vsib").hidden=!sib.length;
+  sib.forEach(x=>{const b=el("button",null,"Ficha "+x.n+(x.p?" · "+PL[x.p].toLowerCase():"")+(x.name!==c.name?" · "+x.name:""));b.type="button";b.onclick=()=>open(x.n);box.append(b)});
+  $("vpos").textContent=(cur+1)+" / "+list.length;
+  $("vprev").disabled=cur<=0;$("vnext").disabled=cur>=list.length-1}
+function step(d){const i=cur+d;if(i>=0&&i<list.length){cur=i;paint()}}
+$("vprev").onclick=()=>step(-1);$("vnext").onclick=()=>step(1);$("vx").onclick=()=>$("dlg").close();
+$("vdone").onclick=()=>toggle("done",list[cur].n);$("vfav").onclick=()=>toggle("fav",list[cur].n);
+$("vi").onclick=e=>{const st=$("stage"),im=$("vi"),r=im.getBoundingClientRect();
+  const fx=(e.clientX-r.left)/r.width,fy=(e.clientY-r.top)/r.height;
+  st.classList.toggle("zoom");
+  if(st.classList.contains("zoom")){requestAnimationFrame(()=>{const p=st.getBoundingClientRect();
+    st.scrollLeft=im.offsetWidth*fx-p.width/2+12;st.scrollTop=im.offsetHeight*fy-p.height/2+12})}};
+$("dlg").addEventListener("click",e=>{if(e.target===$("dlg"))$("dlg").close()});
+document.addEventListener("keydown",e=>{if(!$("dlg").open)return;if(e.key==="ArrowLeft")step(-1);if(e.key==="ArrowRight")step(1)});
+
+$("q").addEventListener("input",e=>{S.q=e.target.value;render()});
+$("plano").onchange=e=>{S.plano=e.target.value;render()};
+$("ord").onchange=e=>{S.ord=e.target.value;render()};
+$("grp").onchange=e=>{S.grp=e.target.checked;render()};
+$("mode").onclick=e=>{const b=e.target.closest("button");if(b){S.mode=b.dataset.m;render()}};
+
+loadLocal();render();connect();
+const h=/^#f(\d{1,3})$/.exec(location.hash||"");if(h&&+h[1]>=1&&+h[1]<=120)open(+h[1]);
+</script>
+
+</body>
+</html>
